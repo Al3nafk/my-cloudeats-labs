@@ -1,0 +1,117 @@
+/* ── RESET + BASE ── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #f5f0e8;
+  color: #2c2c2c;
+  line-height: 1.6;
+}
+
+/* ── HEADER ── */
+.site-header {
+  background: linear-gradient(135deg, #1a3a2a, #2d5a3d);
+  color: white;
+  padding: 2rem;
+  text-align: center;
+}
+.header-inner h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 0.3rem;
+}
+.tagline { font-size: 0.9rem; opacity: 0.8; margin-bottom: 0.75rem; }
+.badge {
+  display: inline-block;
+  background: #f5c842;
+  color: #1a3a2a;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.75rem;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ── MENU CONTAINER ── */
+.menu-container {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+}
+
+/* ── CATEGORY ── */
+.category { margin-bottom: 2.5rem; }
+.category h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1a3a2a;
+  border-bottom: 2px solid #2d5a3d;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ── MENU GRID ── */
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+/* ── MENU ITEM CARD ── */
+.menu-item {
+  background: white;
+  border-radius: 10px;
+  padding: 1.1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  border: 1px solid #e8e0d0;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+.menu-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+.menu-item.popular {
+  border-color: #f5c842;
+  border-width: 2px;
+}
+.item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.menu-item h3 { font-size: 0.95rem; font-weight: 700; color: #1a3a2a; }
+.menu-item p  { font-size: 0.82rem; color: #666; margin-bottom: 0.5rem; }
+.price {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #2d5a3d;
+  white-space: nowrap;
+}
+.tag {
+  font-size: 0.72rem;
+  background: #fff8e1;
+  color: #b8860b;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* ── FOOTER ── */
+.site-footer {
+  background: #1a3a2a;
+  color: rgba(255,255,255,0.6);
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.82rem;
+  margin-top: 2rem;
+}
+.site-footer strong { color: #f5c842; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .menu-grid { grid-template-columns: 1fr; }
+  .header-inner h1 { font-size: 1.5rem; }
+}

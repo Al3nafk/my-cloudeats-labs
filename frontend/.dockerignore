@@ -1,0 +1,6 @@
+# Files we do NOT want inside the container image
+.git
+.gitignore
+*.md
+Dockerfile
+.dockerignore
