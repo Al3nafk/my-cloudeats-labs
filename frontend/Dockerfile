@@ -1,9 +1,11 @@
-# Start from the official nginx image (Alpine Linux variant)
-FROM nginx:alpine
+FROM node:18-alpine
 
-# Copy your HTML and CSS files into nginx's web root
-COPY html/ /usr/share/nginx/html/
-COPY css/  /usr/share/nginx/html/css/
+WORKDIR /app
 
-# Tell Docker this container listens on port 80
-EXPOSE 80
+COPY package*.json ./
+RUN  npm install
+
+COPY . .
+
+EXPOSE 3000
+CMD ["node", "server.js"]

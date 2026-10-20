@@ -1,0 +1,131 @@
+services:
+
+  # Old monolith, kept commented out as a fallback
+  # backend:
+  #   build: ./backend
+  #   container_name: cloudeats-backend
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     DB_HOST:     db
+  #     DB_USER:     cloudeats_user
+  #     DB_PASSWORD: cloudeats_password
+  #     DB_NAME:     cloudeats_db
+  #     PORT:        3000
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   networks:
+  #     - cloudeats-network
+  #   restart: on-failure
+
+  user-service:
+    build: ./services/user-service
+    container_name: cloudeats-user-service
+    ports:
+      - "3001:3001"
+    environment:
+      - DB_HOST=db
+      - DB_USER=cloudeats_user
+      - DB_PASSWORD=cloudeats_password
+      - DB_NAME=cloudeats_db
+      - JWT_SECRET=your_jwt_secret
+      - PORT=3001
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - cloudeats-network
+    restart: unless-stopped
+
+  menu-service:
+    build: ./services/menu-service
+    container_name: cloudeats-menu-service
+    ports:
+      - "3002:3002"
+    environment:
+      - DB_HOST=db
+      - DB_USER=cloudeats_user
+      - DB_PASSWORD=cloudeats_password
+      - DB_NAME=cloudeats_db
+      - PORT=3002
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - cloudeats-network
+    restart: unless-stopped
+
+  order-service:
+    build: ./services/order-service
+    container_name: cloudeats-order-service
+    ports:
+      - "3003:3003"
+    environment:
+      - MONGO_URL=mongodb://mongo:27017
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your_jwt_secret
+      - PORT=3003
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cloudeats-network
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    container_name: cloudeats-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE:      cloudeats_db
+      MYSQL_USER:          cloudeats_user
+      MYSQL_PASSWORD:      cloudeats_password
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 5s
+      timeout:  5s
+      retries:  10
+    networks:
+      - cloudeats-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: cloudeats-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout:  3s
+      retries:  5
+    networks:
+      - cloudeats-network
+
+  mongo:
+    image: mongo:4.4
+    container_name: cloudeats-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongo", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout:  5s
+      retries:  10
+    networks:
+      - cloudeats-network
+
+volumes:
+  mysql-data:
+  mongo-data:
+
+networks:
+  cloudeats-network:
+    driver: bridge

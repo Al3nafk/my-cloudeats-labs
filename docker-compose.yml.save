@@ -1,0 +1,66 @@
+  redis:
+    image: redis:7-alpine
+    container_name: cloudeats-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - cloudeats-network
+
+  mongo:
+    image: mongo:7
+    container_name: cloudeats-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - cloudeats-network
+services:
+
+  backend:
+    build: ./backend
+    container_name: cloudeats-backend
+    ports:
+      - "3000:3000"
+    environment:
+      DB_HOST:     db
+      DB_USER:     cloudeats_user
+      DB_PASSWORD: cloudeats_password
+      DB_NAME:     cloudeats_db
+      PORT:        3000
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - cloudeats-network
+    restart: on-failure
+
+  db:
+    image: mysql:8.0
+    container_name: cloudeats-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE:      cloudeats_db
+      MYSQL_USER:          cloudeats_user
+      MYSQL_PASSWORD:      cloudeats_password
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 5s
+      timeout:  5s
+      retries:  10
+    networks:
+      - cloudeats-network
+
+volumes:
+  mysql-data:
+
+networks:
+  cloudeats-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  mongo-data:

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CloudEats — Register</title>
+  <style>
+    body { font-family: sans-serif; background: #07090f; color: #e8edf5;
+           display: flex; justify-content: center; padding: 3rem 1rem; }
+    .card { background: #1a2235; border: 1px solid #2a3d5a; border-radius: 12px;
+            padding: 2rem; width: 100%; max-width: 400px; }
+    h2 { margin-bottom: 1.5rem; color: #00e5a0; }
+    label { display: block; font-size: 0.82rem; color: #6b7fa0; margin-bottom: 0.3rem; }
+    input { width: 100%; padding: 0.6rem 0.75rem; background: #0d1117;
+            border: 1px solid #2a3d5a; border-radius: 6px; color: #e8edf5;
+            font-size: 0.88rem; margin-bottom: 1rem; box-sizing: border-box; }
+    input:focus { outline: none; border-color: #00e5a0; }
+    button { width: 100%; padding: 0.7rem; background: #00e5a0; color: #000;
+             border: none; border-radius: 6px; font-size: 0.9rem;
+             font-weight: 700; cursor: pointer; }
+    button:hover { background: #00c885; }
+    #result { margin-top: 1rem; padding: 0.75rem; border-radius: 6px;
+              font-size: 0.82rem; display: none; }
+    #result.success { background: rgba(0,229,160,0.1); color: #00e5a0;
+                      border: 1px solid rgba(0,229,160,0.3); }
+    #result.error   { background: rgba(255,94,122,0.1); color: #ff5e7a;
+                      border: 1px solid rgba(255,94,122,0.3); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>🍽️ Create Account</h2>
+
+    <label>Full Name</label>
+    <input type="text" id="full_name" placeholder="Ali Hassan">
+
+    <label>Email Address</label>
+    <input type="email" id="email" placeholder="ali@example.com">
+
+    <label>Phone (optional)</label>
+    <input type="tel" id="phone" placeholder="+60 12-345 6789">
+
+    <label>Password (min. 8 characters)</label>
+    <input type="password" id="password" placeholder="••••••••">
+
+    <button onclick="register()">Create Account</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    async function register() {
+      const result = document.getElementById('result');
+      result.style.display = 'none';
+
+      const body = {
+        full_name: document.getElementById('full_name').value,
+        email:     document.getElementById('email').value,
+        phone:     document.getElementById('phone').value,
+        password:  document.getElementById('password').value
+      };
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+
+        result.style.display = 'block';
+        if (res.ok) {
+          result.className = 'success';
+          result.textContent = '✅ ' + data.message + ' (User ID: ' + data.userId + ')';
+        } else {
+          result.className = 'error';
+          result.textContent = '❌ ' + data.error;
+        }
+      } catch (err) {
+        result.style.display = 'block';
+        result.className = 'error';
+        result.textContent = '❌ Network error: ' + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
