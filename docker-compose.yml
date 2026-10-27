@@ -1,5 +1,23 @@
 services:
 
+  api-gateway:
+    build: ./services/api-gateway
+    container_name: cloudeats-api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      USER_SERVICE_URL:  http://user-service:3001
+      MENU_SERVICE_URL:  http://menu-service:3002
+      ORDER_SERVICE_URL: http://order-service:3003
+      PORT: 8000
+    depends_on:
+      - user-service
+      - menu-service
+      - order-service
+    networks:
+      - cloudeats-network
+    restart: unless-stopped
+
   # Old monolith, kept commented out as a fallback
   # backend:
   #   build: ./backend
@@ -78,6 +96,7 @@ services:
   db:
     image: mysql:8.0
     container_name: cloudeats-db
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE:      cloudeats_db
@@ -97,6 +116,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: cloudeats-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     healthcheck:
@@ -110,6 +130,7 @@ services:
   mongo:
     image: mongo:4.4
     container_name: cloudeats-mongo
+    restart: unless-stopped
     ports:
       - "27017:27017"
     volumes:
