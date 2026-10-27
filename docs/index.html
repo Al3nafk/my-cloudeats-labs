@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CloudEats — Food Ordering Platform</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 700px;
+           margin: 0 auto; padding: 2rem 1rem; background: #07090f; color: #e8edf5; }
+    h1 { color: #ffb740; } h2 { color: #00e5a0; border-bottom: 1px solid #2a3d5a; padding-bottom:.4rem; }
+    code { background: #141b27; padding: .1rem .4rem; border-radius: 4px; color: #00e5a0; }
+    .badge { display:inline-block; background:#1a2235; border:1px solid #2a3d5a;
+             border-radius:4px; padding:.2rem .6rem; font-size:.8rem; margin:.2rem; }
+  </style>
+</head>
+<body>
+  <h1>🍔 CloudEats</h1>
+  <p>A microservices-based food ordering platform built with Node.js, Docker, MySQL, and Redis.</p>
+  <span class="badge">Node.js</span> <span class="badge">Docker</span>
+  <span class="badge">MySQL</span> <span class="badge">Redis</span>
+  <span class="badge">GitHub Actions</span>
+  <h2>Architecture</h2>
+  <ul>
+    <li><strong>User Service</strong> — Register and login, port 3001</li>
+    <li><strong>Menu Service</strong> — Menu browsing, port 3002</li>
+    <li><strong>Order Service</strong> — Redis cart + MongoDB orders, port 3003</li>
+  </ul>
+  <h2>Quick Start</h2>
+  <pre><code>git clone https://github.com/Al3nafk/my-cloudeats-labs
+cd my-cloudeats-labs
+# create a .env file (see Week 7), then:
+docker compose up -d</code></pre>
+  <p>Built during the Cloud Computing course — Week 6 Lab 6.1</p>
+</body>
+</html>
