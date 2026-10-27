@@ -1,0 +1,44 @@
+# Workflow name, appears in the GitHub Actions tab
+name: Run Automated Tests
+
+# TRIGGER: when does this workflow run?
+on:
+  push:
+    branches:
+      - main          # every push to main
+      - 'feature/**'  # every push to any feature/* branch
+  pull_request:
+    branches:
+      - main          # every PR that targets main
+
+# JOBS: what to run
+jobs:
+  test-menu-service:
+    name: Menu Service Tests
+    runs-on: ubuntu-latest  # fresh Ubuntu VM, destroyed after job
+
+    steps:
+
+      # Step 1: Download the code from GitHub
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Install Node.js on the runner VM
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'          # cache node_modules between runs
+          cache-dependency-path: services/menu-service/package-lock.json
+
+      # Step 3: Install project dependencies
+      - name: Install dependencies
+        working-directory: ./services/menu-service
+        run: npm ci          # clean install from package-lock.json
+
+      # Step 4: Run the test suite
+      - name: Run tests
+        working-directory: ./services/menu-service
+        env:
+          NODE_ENV: test    # enables module.exports in server.js
+        run: npm test

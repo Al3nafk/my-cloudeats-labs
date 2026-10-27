@@ -56,7 +56,35 @@ app.get('/api/menu/:id', async (req, res) => {
   }
 });
 
+// ===== RATING VALIDATION (add above app.listen) =====
+function validateRating(rating) {
+  if (rating === undefined || rating === null) {
+    return { valid: false, error: 'Rating is required' };
+  }
+  if (typeof rating !== 'number') {
+    return { valid: false, error: 'Rating must be a number' };
+  }
+  if (!Number.isInteger(rating)) {
+    return { valid: false, error: 'Rating must be a whole number' };
+  }
+  if (rating < 1 || rating > 5) {
+    return { valid: false, error: 'Rating must be between 1 and 5' };
+  }
+  return { valid: true };
+}
+
+// ===== START SERVER (skip during tests) =====
+// Jest sets NODE_ENV=test automatically, only start listening otherwise
 const PORT = process.env.PORT || 3002;
-app.listen(PORT, () =>
-  console.log(`[menu-service] Running on http://localhost:${PORT}`)
-);
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () =>
+    console.log(`[menu-service] Running on http://localhost:${PORT}`)
+  );
+}
+
+// ===== EXPORT FOR TESTING =====
+// Only exports when Jest sets NODE_ENV=test
+// Production server is unaffected
+if (process.env.NODE_ENV === 'test') {
+  module.exports = { validateRating };
+}
