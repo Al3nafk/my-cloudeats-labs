@@ -21,3 +21,7 @@ INSERT IGNORE INTO menu_items (id, name, category, price, description, badge) VA
   (5, 'Mee Goreng Mamak',      'Mains',     11.00, 'Yellow noodles fried with tofu, squid & tomato sauce',           NULL),
   (6, 'Teh Tarik',             'Beverages',  3.00, 'Pulled milk tea — sweet, frothy, and perfectly Malaysian',        NULL),
   (7, 'Milo Ais',              'Beverages',  4.00, 'Iced Milo with condensed milk — the Malaysian childhood drink',   NULL);
+
+-- Laksa (added in Lab 6.1)
+INSERT INTO menu_items (name, category, price, description, badge)
+VALUES ('Laksa', 'Noodles', 9.50, 'Spicy coconut noodle soup with prawns and tofu puffs', NULL);
