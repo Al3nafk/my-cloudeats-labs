@@ -1,4 +1,89 @@
 services:
+  # ---------- Data stores ----------
+  db:
+    image: mysql:8.0
+    container_name: cloudeats-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-cloudeats_db}
+      MYSQL_USER: ${MYSQL_USER:-cloudeats_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+    networks: [cloudeats-network]
+
+  mongo:
+    image: mongo:4.4
+    container_name: cloudeats-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?Set MONGO_PASSWORD in .env}
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongo", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [cloudeats-network]
+
+  redis:
+    image: redis:7-alpine
+    container_name: cloudeats-redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks: [cloudeats-network]
+
+  # ---------- Microservices ----------
+  user-service:
+    build: ./services/user-service
+    container_name: cloudeats-user-service
+    environment:
+      DB_HOST: db
+      DB_USER: ${MYSQL_USER:-cloudeats_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE:-cloudeats_db}
+    depends_on:
+      db: { condition: service_healthy }
+    restart: unless-stopped
+    networks: [cloudeats-network]
+
+  menu-service:
+    build: ./services/menu-service
+    container_name: cloudeats-menu-service
+    environment:
+      DB_HOST: db
+      DB_USER: ${MYSQL_USER:-cloudeats_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE:-cloudeats_db}
+    depends_on:
+      db: { condition: service_healthy }
+    restart: unless-stopped
+    networks: [cloudeats-network]
+
+  order-service:
+    build: ./services/order-service
+    container_name: cloudeats-order-service
+    environment:
+      MONGO_URL: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD}@mongo:27017/?authSource=admin
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      mongo: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+    networks: [cloudeats-network]
 
   api-gateway:
     build: ./services/api-gateway
@@ -6,147 +91,20 @@ services:
     ports:
       - "8000:8000"
     environment:
-      USER_SERVICE_URL:  http://user-service:3001
-      MENU_SERVICE_URL:  http://menu-service:3002
+      USER_SERVICE_URL: http://user-service:3001
+      MENU_SERVICE_URL: http://menu-service:3002
       ORDER_SERVICE_URL: http://order-service:3003
-      PORT: 8000
     depends_on:
       - user-service
       - menu-service
       - order-service
-    networks:
-      - cloudeats-network
     restart: unless-stopped
-
-  # Old monolith, kept commented out as a fallback
-  # backend:
-  #   build: ./backend
-  #   container_name: cloudeats-backend
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     DB_HOST:     db
-  #     DB_USER:     cloudeats_user
-  #     DB_PASSWORD: cloudeats_password
-  #     DB_NAME:     cloudeats_db
-  #     PORT:        3000
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #   networks:
-  #     - cloudeats-network
-  #   restart: on-failure
-
-  user-service:
-    build: ./services/user-service
-    container_name: cloudeats-user-service
-    ports:
-      - "3001:3001"
-    environment:
-      - DB_HOST=db
-      - DB_USER=cloudeats_user
-      - DB_PASSWORD=cloudeats_password
-      - DB_NAME=cloudeats_db
-      - JWT_SECRET=your_jwt_secret
-      - PORT=3001
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - cloudeats-network
-    restart: unless-stopped
-
-  menu-service:
-    build: ./services/menu-service
-    container_name: cloudeats-menu-service
-    ports:
-      - "3002:3002"
-    environment:
-      - DB_HOST=db
-      - DB_USER=cloudeats_user
-      - DB_PASSWORD=cloudeats_password
-      - DB_NAME=cloudeats_db
-      - PORT=3002
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - cloudeats-network
-    restart: unless-stopped
-
-  order-service:
-    build: ./services/order-service
-    container_name: cloudeats-order-service
-    ports:
-      - "3003:3003"
-    environment:
-      - MONGO_URL=mongodb://mongo:27017
-      - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=your_jwt_secret
-      - PORT=3003
-    depends_on:
-      mongo:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - cloudeats-network
-    restart: unless-stopped
-
-  db:
-    image: mysql:8.0
-    container_name: cloudeats-db
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE:      cloudeats_db
-      MYSQL_USER:          cloudeats_user
-      MYSQL_PASSWORD:      cloudeats_password
-    volumes:
-      - mysql-data:/var/lib/mysql
-      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
-      interval: 5s
-      timeout:  5s
-      retries:  10
-    networks:
-      - cloudeats-network
-
-  redis:
-    image: redis:7-alpine
-    container_name: cloudeats-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout:  3s
-      retries:  5
-    networks:
-      - cloudeats-network
-
-  mongo:
-    image: mongo:4.4
-    container_name: cloudeats-mongo
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    healthcheck:
-      test: ["CMD", "mongo", "--quiet", "--eval", "db.adminCommand('ping')"]
-      interval: 5s
-      timeout:  5s
-      retries:  10
-    networks:
-      - cloudeats-network
+    networks: [cloudeats-network]
 
 volumes:
-  mysql-data:
-  mongo-data:
+  mysql_data:
+  mongo_data:
+  redis_data:
 
 networks:
   cloudeats-network:
-    driver: bridge
