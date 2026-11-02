@@ -16,7 +16,7 @@ const SERVICES = {
 
 // Health check for the gateway itself
 app.get('/health', (req, res) =>
-  res.json({ status: 'ok', service: 'api-gateway', port: 8000, routes: SERVICES })
+  res.json({ status: 'ok', service: 'api-gateway', port: 8000, version: '1.1', routes: SERVICES })
 );
 
 // Proxy factory helper
