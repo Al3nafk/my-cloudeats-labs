@@ -42,3 +42,19 @@ jobs:
         env:
           NODE_ENV: test    # enables module.exports in server.js
         run: npm test
+
+  deploy:
+    name: Deploy to VM
+    needs: test-menu-service
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: self-hosted
+    steps:
+      - name: Update code and redeploy
+        run: |
+          set -e
+          cd ~/cloudeats-app
+          git pull --ff-only origin main
+          docker compose up -d --build --no-deps user-service menu-service order-service api-gateway
+          curl -fsS --retry 10 --retry-delay 3 --retry-connrefused http://localhost:8000/health
+          curl -fsS http://localhost:8000/api/menu > /dev/null
+          docker compose ps
