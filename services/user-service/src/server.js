@@ -66,7 +66,7 @@ app.post('/api/auth/login', async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      'SELECT id, email, password_hash, full_name FROM users WHERE email = ?',
+      'SELECT id, email, password_hash, full_name, role FROM users WHERE email = ?',
       [email]
     );
     if (rows.length === 0) {
@@ -81,7 +81,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     // Payload = who this user is. Never put password data in a token.
     const token = jwt.sign(
-      { userId: user.id, email: user.email, name: user.full_name },
+      { userId: user.id, email: user.email, name: user.full_name, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
     );
@@ -89,6 +89,7 @@ app.post('/api/auth/login', async (req, res) => {
     res.json({
       message:  'Login successful',
       token,
+      role:     user.role,
       userId:   user.id,
       fullName: user.full_name,
       email:    user.email
@@ -113,6 +114,51 @@ app.get('/api/users/:id', async (req, res) => {
   } catch (err) {
     console.error('Get user error:', err.message);
     res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+// ── ADMIN ROUTES (the gateway only lets role=admin reach these) ──
+const ROLES = ['customer', 'owner', 'admin'];
+
+// GET /api/admin/users — every user with their role (never the password hash)
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT id, email, full_name, role, created_at FROM users ORDER BY id'
+    );
+    res.json({ users: rows });
+  } catch (err) {
+    console.error('Admin list error:', err.message);
+    res.status(500).json({ error: 'Could not list users' });
+  }
+});
+
+// GET /api/admin/stats — how many users per role
+app.get('/api/admin/stats', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT role, COUNT(*) AS n FROM users GROUP BY role');
+    const byRole = {};
+    rows.forEach(r => { byRole[r.role] = r.n; });
+    res.json({ totalUsers: rows.reduce((a, r) => a + r.n, 0), byRole, requestedBy: req.headers['x-user-email'] });
+  } catch (err) {
+    console.error('Admin stats error:', err.message);
+    res.status(500).json({ error: 'Could not load stats' });
+  }
+});
+
+// PATCH /api/admin/users/:id/role — promote or demote
+app.patch('/api/admin/users/:id/role', async (req, res) => {
+  const { role } = req.body;
+  if (!ROLES.includes(role)) {
+    return res.status(400).json({ error: 'role must be one of: ' + ROLES.join(', ') });
+  }
+  try {
+    const [result] = await db.query('UPDATE users SET role = ? WHERE id = ?', [role, req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'User not found' });
+    res.json({ message: 'Role updated', userId: Number(req.params.id), role });
+  } catch (err) {
+    console.error('Admin role error:', err.message);
+    res.status(500).json({ error: 'Could not update role' });
   }
 });
 

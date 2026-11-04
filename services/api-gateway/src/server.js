@@ -65,6 +65,7 @@ function authenticateToken(req, res, next) {
     // client tried to send, so it cannot be forged.
     req.headers['x-user-id']    = String(decoded.userId);
     req.headers['x-user-email'] = String(decoded.email);
+    req.headers['x-user-role']  = String(decoded.role || 'customer');
     next();
   });
 }
@@ -77,6 +78,23 @@ function requireSelf(req, res, next) {
     });
   }
   next();
+}
+
+// ── 3. Are you ALLOWED to do this? Check the role in the token ──
+// Usage: requireRole('admin')  or  requireRole('admin', 'owner')
+function requireRole(...allowed) {
+  return (req, res, next) => {
+    // authenticateToken must run first, so req.user exists
+    if (!req.user) {
+      return res.status(401).json({ error: 'Not authenticated.' });
+    }
+    if (!allowed.includes(req.user.role)) {
+      return res.status(403).json({
+        error: 'Access denied. This route requires role: ' + allowed.join(' or ') + '.'
+      });
+    }
+    next();
+  };
 }
 
 // ROUTE TABLE
@@ -93,12 +111,15 @@ app.use('/api/orders/user/:userId', authenticateToken, requireSelf, proxy(SERVIC
 // Protected: valid token (the order-service reads the user from x-user-id)
 app.use('/api/orders',              authenticateToken, proxy(SERVICES.order));
 
+// Admin only: valid token AND role = admin
+app.use('/api/admin', authenticateToken, requireRole('admin'), proxy(SERVICES.user));
+
 // 404 for unknown routes
 app.use((req, res) =>
   res.status(404).json({
     error:           'Route not found in gateway',
     requestedPath:   req.path,
-    availableRoutes: ['/api/auth', '/api/users', '/api/menu', '/api/cart', '/api/orders']
+    availableRoutes: ['/api/auth', '/api/users', '/api/menu', '/api/cart', '/api/orders', '/api/admin']
   })
 );
 

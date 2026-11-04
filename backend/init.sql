@@ -1,6 +1,16 @@
 -- Use the database created by Docker Compose environment variables
 USE cloudeats_db;
 
+-- Create users table (used by user-service; roles.sql adds the role column)
+CREATE TABLE IF NOT EXISTS users (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  email         VARCHAR(255) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  full_name     VARCHAR(255) NOT NULL,
+  phone         VARCHAR(20),
+  created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create menu_items table
 CREATE TABLE IF NOT EXISTS menu_items (
   id          INT AUTO_INCREMENT PRIMARY KEY,
