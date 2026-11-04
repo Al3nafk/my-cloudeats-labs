@@ -2,6 +2,13 @@ const express = require('express');
 const mysql   = require('mysql2/promise');
 const bcrypt  = require('bcrypt');
 const cors    = require('cors');
+const jwt     = require('jsonwebtoken');
+
+// Fail fast instead of signing tokens with an undefined secret
+if (!process.env.JWT_SECRET) {
+  console.error('[user-service] JWT_SECRET is not set — exiting');
+  process.exit(1);
+}
 
 const app = express();
 app.use(cors());
@@ -72,8 +79,16 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Payload = who this user is. Never put password data in a token.
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, name: user.full_name },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+    );
+
     res.json({
       message:  'Login successful',
+      token,
       userId:   user.id,
       fullName: user.full_name,
       email:    user.email

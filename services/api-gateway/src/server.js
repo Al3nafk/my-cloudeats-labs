@@ -1,6 +1,13 @@
 const express      = require('express');
 const cors         = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
+const jwt          = require('jsonwebtoken');
+
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('[api-gateway] JWT_SECRET is not set — exiting');
+  process.exit(1);
+}
 
 const app = express();
 app.use(cors());
@@ -39,18 +46,52 @@ function proxy(target) {
   });
 }
 
+// ── 1. Who are you? Verify the JWT ──
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token      = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided. Please log in.' });
+  }
+
+  jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ error: 'Invalid or expired token. Please log in again.' });
+    }
+    req.user = decoded;   // { userId, email, name, iat, exp }
+
+    // Tell the services who is calling. This OVERWRITES any x-user-id the
+    // client tried to send, so it cannot be forged.
+    req.headers['x-user-id']    = String(decoded.userId);
+    req.headers['x-user-email'] = String(decoded.email);
+    next();
+  });
+}
+
+// ── 2. Is this YOUR data? Compare token user with the :userId in the URL ──
+function requireSelf(req, res, next) {
+  if (String(req.user.userId) !== req.params.userId) {
+    return res.status(403).json({
+      error: 'Access denied. You can only access your own data.'
+    });
+  }
+  next();
+}
+
 // ROUTE TABLE
 
-// User Service
-app.use('/api/auth',   proxy(SERVICES.user));
-app.use('/api/users',  proxy(SERVICES.user));   // Week 8: add authenticateToken
+// Public
+app.use('/api/auth', proxy(SERVICES.user));    // register + login
+app.use('/api/menu', proxy(SERVICES.menu));    // anyone may browse
 
-// Menu Service (public, browsing doesn't need login)
-app.use('/api/menu',   proxy(SERVICES.menu));
+// Protected: valid token AND must be your own id
+app.use('/api/users/:userId',       authenticateToken, requireSelf, proxy(SERVICES.user));
+app.use('/api/cart/:userId',        authenticateToken, requireSelf, proxy(SERVICES.order));
+app.use('/api/orders/user/:userId', authenticateToken, requireSelf, proxy(SERVICES.order));
 
-// Order Service
-app.use('/api/cart',   proxy(SERVICES.order));  // Week 8: add authenticateToken
-app.use('/api/orders', proxy(SERVICES.order));  // Week 8: add authenticateToken
+// Protected: valid token (the order-service reads the user from x-user-id)
+app.use('/api/orders',              authenticateToken, proxy(SERVICES.order));
 
 // 404 for unknown routes
 app.use((req, res) =>
